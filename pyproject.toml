@@ -1,0 +1,16 @@
+[project]
+name = "mapas-ine"
+version = "0.1.0"
+description = "Mapas interactivos de España con datos de vivienda del INE"
+requires-python = ">=3.11"
+dependencies = [
+    "streamlit>=1.40",
+    "plotly>=5.24",
+    "pandas>=2.2",
+    "requests>=2.32",
+    "kaleido>=1.2.0",
+    "statsmodels>=0.14.6",
+]
+
+[project.scripts]
+mapas-ine = "src.app:main"

@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Reportes INE — Vivienda e Inmigración</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; display: flex; height: 100vh; color: #1a1a1a; }
+
+    /* Sidebar */
+    nav {
+      width: 260px;
+      min-width: 260px;
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 20px 0;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+    nav h2 {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #94a3b8;
+      padding: 0 20px;
+      margin-bottom: 12px;
+    }
+    nav .logo {
+      font-size: 18px;
+      font-weight: 700;
+      padding: 0 20px 20px;
+      border-bottom: 1px solid #334155;
+      margin-bottom: 16px;
+    }
+    nav a {
+      display: block;
+      padding: 10px 20px;
+      color: #cbd5e1;
+      text-decoration: none;
+      font-size: 14px;
+      border-left: 3px solid transparent;
+      transition: all 0.15s;
+    }
+    nav a:hover { background: #334155; color: #fff; }
+    nav a.active { background: #334155; color: #fff; border-left-color: #3b82f6; font-weight: 600; }
+    nav .section-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #64748b;
+      padding: 16px 20px 6px;
+    }
+
+    /* Main content */
+    main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 32px 48px;
+      background: #f8fafc;
+    }
+    .report { display: none; }
+    .report.active { display: block; }
+    .report h1 { font-size: 28px; margin-bottom: 4px; color: #0f172a; }
+    .report .subtitle { color: #64748b; font-size: 14px; margin-bottom: 24px; }
+    .report h2 { font-size: 20px; margin: 28px 0 12px; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; }
+    .report img { max-width: 100%; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin: 12px 0; }
+    .report table { border-collapse: collapse; margin: 12px 0; width: auto; min-width: 320px; }
+    .report th { background: #1e293b; color: #fff; padding: 8px 16px; text-align: left; font-size: 13px; }
+    .report td { padding: 7px 16px; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
+    .report tr:hover td { background: #f1f5f9; }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin: 12px 0 24px;
+    }
+    .stat-card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+    }
+    .stat-card .label { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-card .value { font-size: 24px; font-weight: 700; color: #0f172a; margin-top: 4px; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">📊 Reportes INE</div>
+
+  <div class="section-label">Vivienda</div>
+  <a href="#" data-report="ipv" class="active">Precios de Vivienda (IPV)</a>
+  <a href="#" data-report="alquiler">Precios de Alquiler</a>
+  <a href="#" data-report="compraventas">Compraventas</a>
+  <a href="#" data-report="hipotecas">Hipotecas</a>
+  <a href="#" data-report="viviendas_turisticas">Viviendas Turísticas</a>
+
+  <div class="section-label">Demografía</div>
+  <a href="#" data-report="inmigracion">Inmigración</a>
+</nav>
+
+<main id="content"></main>
+
+<script>
+const REPORTS = {
+  ipv: {
+    title: "Índice de Precios de Vivienda (IPV)",
+    desc: "Índice trimestral de precios de vivienda por CCAA",
+  },
+  alquiler: {
+    title: "Índice de Precios de Alquiler",
+    desc: "Índice de precios de alquiler por provincia (trimestral)",
+  },
+  compraventas: {
+    title: "Compraventas de viviendas",
+    desc: "Transmisiones de viviendas por provincia (mensual)",
+  },
+  hipotecas: {
+    title: "Hipotecas constituidas",
+    desc: "Hipotecas constituidas por provincia (mensual)",
+  },
+  viviendas_turisticas: {
+    title: "Viviendas turísticas",
+    desc: "Viviendas turísticas por provincia",
+  },
+  inmigracion: {
+    title: "Inmigración procedente del extranjero",
+    desc: "Flujo de inmigración desde el extranjero por provincia (anual)",
+  },
+};
+
+// Load CSV and parse
+async function loadCSV(path) {
+  const resp = await fetch(path);
+  const text = await resp.text();
+  const lines = text.trim().split("\n");
+  const headers = lines[0].split(",");
+  return lines.slice(1).map(line => {
+    const vals = line.split(",");
+    const obj = {};
+    headers.forEach((h, i) => obj[h.trim()] = vals[i]?.trim());
+    return obj;
+  });
+}
+
+function formatNum(n) {
+  const num = parseFloat(n);
+  if (isNaN(num)) return n;
+  return num.toLocaleString("es-ES", { maximumFractionDigits: 1 });
+}
+
+function formatDate(d) {
+  if (!d) return "";
+  const date = new Date(d);
+  if (isNaN(date)) return d;
+  return date.toLocaleDateString("es-ES", { month: "long", year: "numeric" });
+}
+
+async function renderReport(key) {
+  const info = REPORTS[key];
+  const data = await loadCSV(`../data/csv/${key}_ultimo.csv`);
+
+  const valores = data.map(d => parseFloat(d.valor)).filter(v => !isNaN(v));
+  const mean = valores.reduce((a, b) => a + b, 0) / valores.length;
+  const sorted = [...valores].sort((a, b) => a - b);
+  const median = sorted.length % 2 === 0
+    ? (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2
+    : sorted[Math.floor(sorted.length / 2)];
+  const max = Math.max(...valores);
+  const min = Math.min(...valores);
+
+  const periodo = data[0]?.periodo ? formatDate(data[0].periodo) : "";
+
+  // Sort by valor descending
+  const ranked = [...data].sort((a, b) => parseFloat(b.valor) - parseFloat(a.valor));
+  const top5 = ranked.slice(0, 5);
+  const bottom5 = ranked.slice(-5).reverse();
+
+  const html = `
+    <div class="report active">
+      <h1>${info.title}</h1>
+      <div class="subtitle">${info.desc}${periodo ? " — Último dato: " + periodo : ""}</div>
+
+      <h2>Mapa por provincia</h2>
+      <img src="img/${key}_mapa.png" alt="Mapa ${info.title}">
+
+      <h2>Estadísticas resumen</h2>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="label">Media</div><div class="value">${formatNum(mean)}</div></div>
+        <div class="stat-card"><div class="label">Mediana</div><div class="value">${formatNum(median)}</div></div>
+        <div class="stat-card"><div class="label">Máximo</div><div class="value">${formatNum(max)}</div></div>
+        <div class="stat-card"><div class="label">Mínimo</div><div class="value">${formatNum(min)}</div></div>
+        <div class="stat-card"><div class="label">Provincias</div><div class="value">${valores.length}</div></div>
+      </div>
+
+      <h2>Top 5 provincias</h2>
+      <table>
+        <tr><th>Provincia</th><th>Valor</th></tr>
+        ${top5.map(d => `<tr><td>${d.provincia}</td><td>${formatNum(d.valor)}</td></tr>`).join("")}
+      </table>
+
+      <h2>Bottom 5 provincias</h2>
+      <table>
+        <tr><th>Provincia</th><th>Valor</th></tr>
+        ${bottom5.map(d => `<tr><td>${d.provincia}</td><td>${formatNum(d.valor)}</td></tr>`).join("")}
+      </table>
+
+      <h2>Ranking completo</h2>
+      <img src="img/${key}_ranking.png" alt="Ranking ${info.title}">
+
+      <h2>Evolución temporal (top 10 provincias)</h2>
+      <img src="img/${key}_serie.png" alt="Serie temporal ${info.title}">
+
+      <h2>Datos completos</h2>
+      <table>
+        <tr><th>#</th><th>Provincia</th><th>Valor</th><th>Período</th></tr>
+        ${ranked.map((d, i) => `<tr><td>${i + 1}</td><td>${d.provincia}</td><td>${formatNum(d.valor)}</td><td>${formatDate(d.periodo)}</td></tr>`).join("")}
+      </table>
+    </div>
+  `;
+
+  document.getElementById("content").innerHTML = html;
+}
+
+// Navigation
+document.querySelectorAll("nav a").forEach(link => {
+  link.addEventListener("click", e => {
+    e.preventDefault();
+    document.querySelectorAll("nav a").forEach(a => a.classList.remove("active"));
+    link.classList.add("active");
+    renderReport(link.dataset.report);
+  });
+});
+
+// Load first report
+renderReport("ipv");
+</script>
+
+</body>
+</html>

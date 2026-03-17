@@ -1,4 +1,4 @@
-"""Dashboard de demografía de España — datos del INE."""
+"""Dashboard de demografía de España — Fuente: INE."""
 
 import json
 import re

@@ -1,6 +1,5 @@
 # Porcentaje de población ≥65 años
 
-> 
 > Último dato: diciembre 2024
 
 ## Mapa por provincia
@@ -12,10 +11,10 @@
 | Métrica | Valor |
 |---------|-------|
 | Media | 22.3 |
-| Mediana | 21.5 |
+| Mediana | 21.6 |
 | Máximo | 32.7 |
 | Mínimo | 12.7 |
-| Provincias | 45 |
+| Provincias | 52 |
 
 ## Top 5 provincias
 
@@ -34,8 +33,8 @@
 | Melilla | 12.7 |
 | Ceuta | 13.7 |
 | Almería | 16.3 |
+| Illes Balears | 16.8 |
 | Guadalajara | 17.0 |
-| Murcia | 17.0 |
 
 ## Ranking completo
 

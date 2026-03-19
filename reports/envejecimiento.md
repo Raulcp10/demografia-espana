@@ -1,6 +1,5 @@
 # Índice de envejecimiento
 
-> 
 > Último dato: diciembre 2024
 
 ## Mapa por provincia
@@ -11,11 +10,11 @@
 
 | Métrica | Valor |
 |---------|-------|
-| Media | 170.4 |
-| Mediana | 154.2 |
+| Media | 170.1 |
+| Mediana | 157.2 |
 | Máximo | 340.9 |
 | Mínimo | 60.4 |
-| Provincias | 45 |
+| Provincias | 52 |
 
 ## Top 5 provincias
 

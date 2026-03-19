@@ -1,6 +1,5 @@
 # Tasa bruta de natalidad
 
-> 
 > Último dato: diciembre 2023
 
 ## Mapa por provincia
@@ -11,11 +10,11 @@
 
 | Métrica | Valor |
 |---------|-------|
-| Media | 6.3 |
-| Mediana | 6.6 |
+| Media | 6.2 |
+| Mediana | 6.5 |
 | Máximo | 9.2 |
 | Mínimo | 4.2 |
-| Provincias | 45 |
+| Provincias | 52 |
 
 ## Top 5 provincias
 
@@ -25,7 +24,7 @@
 | Almería | 8.6 |
 | Ceuta | 8.2 |
 | Murcia | 7.9 |
-| Madrid | 7.2 |
+| Illes Balears | 7.3 |
 
 ## Bottom 5 provincias
 

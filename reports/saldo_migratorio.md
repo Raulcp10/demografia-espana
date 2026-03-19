@@ -1,6 +1,5 @@
 # Saldo migratorio por 1.000 hab.
 
-> 
 > Último dato: diciembre 2023
 
 ## Mapa por provincia

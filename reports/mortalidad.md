@@ -1,6 +1,5 @@
 # Tasa bruta de mortalidad
 
-> 
 > Último dato: diciembre 2023
 
 ## Mapa por provincia
@@ -11,11 +10,11 @@
 
 | Métrica | Valor |
 |---------|-------|
-| Media | 10.0 |
+| Media | 9.9 |
 | Mediana | 9.8 |
 | Máximo | 15.4 |
 | Mínimo | 5.0 |
-| Provincias | 45 |
+| Provincias | 52 |
 
 ## Top 5 provincias
 
@@ -34,8 +33,8 @@
 | Melilla | 5.0 |
 | Ceuta | 6.3 |
 | Madrid | 7.0 |
+| Illes Balears | 7.2 |
 | Almería | 7.4 |
-| Murcia | 7.4 |
 
 ## Ranking completo
 

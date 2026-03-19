@@ -61,11 +61,19 @@ INE_NAME_TO_COD_PROV: dict[str, str] = {
     "Navarra, Comunidad Foral de": "31",
     "Navarra": "31",
     "Araba/Álava": "01",
+    "Álava": "01",
     "Bizkaia": "48",
+    "Vizcaya": "48",
     "Gipuzkoa": "20",
+    "Guipúzcoa": "20",
     "Rioja, La": "26",
+    "Rioja (La)": "26",
     "Ceuta": "51",
     "Melilla": "52",
+    # Variantes con paréntesis que usa el INE en tablas IDB
+    "Balears (Illes)": "07",
+    "Coruña (A)": "15",
+    "Palmas (Las)": "35",
 }
 
 CCAA_TO_PROVINCES: dict[str, list[str]] = {

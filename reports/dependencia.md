@@ -1,6 +1,5 @@
 # Tasa de dependencia
 
-> 
 > Último dato: diciembre 2024
 
 ## Mapa por provincia
@@ -11,11 +10,11 @@
 
 | Métrica | Valor |
 |---------|-------|
-| Media | 56.7 |
-| Mediana | 55.0 |
+| Media | 56.4 |
+| Mediana | 55.5 |
 | Máximo | 73.4 |
-| Mínimo | 45.2 |
-| Provincias | 45 |
+| Mínimo | 42.1 |
+| Provincias | 52 |
 
 ## Top 5 provincias
 
@@ -31,11 +30,11 @@
 
 | Provincia | % |
 |-----------|--------|
+| Las Palmas | 42.1 |
 | Santa Cruz De Tenerife | 45.2 |
+| Illes Balears | 45.3 |
 | Ceuta | 47.2 |
 | Guadalajara | 48.2 |
-| Almería | 49.4 |
-| Huelva | 49.6 |
 
 ## Ranking completo
 

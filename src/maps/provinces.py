@@ -1,5 +1,7 @@
 """Mapeo de provincias y CCAA entre INE y GeoJSON."""
 
+from __future__ import annotations
+
 import json
 from functools import lru_cache
 from pathlib import Path

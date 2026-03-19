@@ -1,5 +1,7 @@
 """Cliente genérico para la API JSON del INE (servicios.ine.es)."""
 
+from __future__ import annotations
+
 import pandas as pd
 import requests
 

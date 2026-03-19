@@ -1,5 +1,7 @@
 """Datos de vivienda del INE: IPV, compraventas, hipotecas, alquiler, turísticas."""
 
+from __future__ import annotations
+
 import pandas as pd
 
 from src.maps.provinces import (

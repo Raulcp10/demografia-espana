@@ -7,8 +7,6 @@ from pathlib import Path
 import pandas as pd
 import plotly.express as px
 import plotly.io as pio
-import requests
-
 # Meses en español
 locale.setlocale(locale.LC_TIME, "es_ES.UTF-8")
 
@@ -31,92 +29,14 @@ def fecha_es(ts: pd.Timestamp) -> str:
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.ine import TABLES, get_latest_data, get_timeseries
-from src.provinces import (
-    CCAA_TO_PROVINCES,
-    INE_NAME_TO_COD_PROV,
-    get_province_name,
-    is_province,
-    load_geojson,
-)
+from src.charts import COLOR_SCALES, UNITS
+from src.maps.provinces import get_province_name, load_geojson
+from src.sources.ine.inmigracion import fetch_immigration
+from src.sources.ine.vivienda import TABLES, get_latest_data, get_timeseries
 
 DATA_DIR = Path("data/csv")
 IMG_DIR = Path("reports/img")
 REPORTS_DIR = Path("reports")
-
-COLOR_SCALES = {
-    "ipv": "YlOrRd",
-    "compraventas": "Blues",
-    "hipotecas": "Purples",
-    "viviendas_turisticas": "Oranges",
-    "alquiler": "RdYlGn_r",
-    "inmigracion": "Teal",
-}
-
-UNITS = {
-    "ipv": "Índice (base 2015=100)",
-    "compraventas": "Nº de compraventas",
-    "hipotecas": "Nº de hipotecas",
-    "viviendas_turisticas": "Nº de viviendas turísticas",
-    "alquiler": "Índice (base 2015=100)",
-    "inmigracion": "Nº de inmigrantes",
-}
-
-
-# --- Immigration data ---
-
-
-def fetch_immigration(nult: int = 5) -> pd.DataFrame:
-    """Fetch immigration data by province from INE table 69691."""
-    url = "https://servicios.ine.es/wstempus/js/ES/DATOS_TABLA/69691"
-    resp = requests.get(url, params={"nult": nult}, timeout=120)
-    resp.raise_for_status()
-    raw = resp.json()
-
-    rows = []
-    for series in raw:
-        nombre = series.get("Nombre", "")
-        n_lower = nombre.lower()
-        # Filter: total ages, total nationality, total sex
-        if "todas las edades" not in n_lower:
-            continue
-        if "dato base" not in n_lower:
-            continue
-
-        parts = [p.strip() for p in nombre.split(".") if p.strip()]
-        if not parts:
-            continue
-
-        territory = parts[0]
-        # Check if it's "Total" sex (not Hombres/Mujeres)
-        if len(parts) > 3 and parts[3] != "Total":
-            continue
-        # Check nationality = Total (not Española/Extranjera)
-        if len(parts) > 2 and parts[2] != "Total":
-            continue
-
-        # Resolve to province
-        if not is_province(territory):
-            continue
-        cod = INE_NAME_TO_COD_PROV.get(territory)
-        if not cod:
-            continue
-
-        for dp in series.get("Data", []):
-            valor = dp.get("Valor")
-            fecha = dp.get("Fecha")
-            if valor is None or fecha is None:
-                continue
-            rows.append({
-                "cod_prov": cod,
-                "periodo": pd.Timestamp(fecha, unit="ms"),
-                "valor": valor,
-            })
-
-    df = pd.DataFrame(rows)
-    if not df.empty:
-        df = df.sort_values(["cod_prov", "periodo"])
-    return df
 
 
 # --- Chart generation ---

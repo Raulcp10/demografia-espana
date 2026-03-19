@@ -2,21 +2,25 @@
 
 from pathlib import Path
 
+import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-from src.maps.provinces import load_geojson
+from src.maps.provinces import get_province_name, load_geojson
 from src.sources.ine.demografia import (
     AGE_GROUPS,
     IDB_TABLES,
     YEAR,
+    fetch_idb,
     fetch_idb_latest,
     load_demographics,
     load_historical_65,
     load_pyramid,
     load_rates,
 )
+
+CSV_DIR = Path("data/csv")
 
 st.set_page_config(
     page_title="Demografía de España · INE",
@@ -64,6 +68,26 @@ def _hist_65():
 @st.cache_data(ttl=7200, show_spinner="Descargando mapa por provincias…")
 def _demo_prov(key):
     return fetch_idb_latest(key)
+
+
+@st.cache_data(show_spinner=False)
+def _load_csv(key: str) -> pd.DataFrame:
+    path = CSV_DIR / f"{key}_ultimo.csv"
+    if not path.exists():
+        return pd.DataFrame()
+    return pd.read_csv(path)
+
+
+@st.cache_data(show_spinner=False)
+def _load_csv_series(key: str) -> pd.DataFrame:
+    path = CSV_DIR / f"{key}_serie.csv"
+    if not path.exists():
+        return pd.DataFrame()
+    df = pd.read_csv(path)
+    if "periodo" in df.columns:
+        df["periodo"] = pd.to_datetime(df["periodo"])
+        df["year"] = df["periodo"].dt.year
+    return df
 
 
 # --- Tabs ---
@@ -237,8 +261,246 @@ with tab_mapa:
 # TAB: Informe demográfico
 # ============================================================
 with tab_informe:
-    informe_path = Path("reports/informe_demografico.md")
-    if informe_path.exists():
-        st.markdown(informe_path.read_text())
-    else:
-        st.info("No se encontró el informe. Comprueba que existe `reports/informe_demografico.md`.")
+    st.header("Demografía de España: radiografía de un país que envejece")
+    st.caption("Datos del Instituto Nacional de Estadística (INE) · Último dato disponible: 2023")
+
+    st.markdown("""
+España atraviesa una transformación demográfica profunda. La combinación de una natalidad
+en mínimos históricos, una esperanza de vida entre las más altas del mundo y un envejecimiento
+acelerado de la población configura un escenario que ya está impactando el mercado laboral,
+el sistema de pensiones y la vertebración territorial.
+""")
+
+    st.divider()
+
+    # --- Natalidad ---
+    st.subheader("Natalidad: caída sostenida durante una década")
+
+    nat_series = _load_csv_series("natalidad")
+    nat_latest = _load_csv("natalidad")
+
+    st.markdown("""
+La tasa bruta de natalidad media en España ha caído un **27,6%** en diez años,
+pasando de 8,67‰ en 2014 a 6,28‰ en 2023. Es un descenso sin precedentes
+que no muestra signos de revertirse.
+""")
+
+    if not nat_series.empty:
+        nat_yearly = nat_series.groupby("year")["valor"].mean().reset_index()
+        fig_nat = go.Figure(go.Scatter(
+            x=nat_yearly["year"], y=nat_yearly["valor"],
+            mode="lines+markers+text",
+            text=[f"{v:.1f}" for v in nat_yearly["valor"]],
+            textposition="top center", textfont={"size": 9},
+            marker={"color": "#27ae60", "size": 7},
+            line={"color": "#27ae60", "width": 2},
+            hovertemplate="%{x}: %{y:.2f}‰<extra></extra>",
+        ))
+        fig_nat.update_layout(
+            title="Evolución de la tasa de natalidad (media nacional)",
+            height=350, xaxis={"title": "", "dtick": 1}, yaxis={"title": "‰"},
+            margin={"r": 10, "t": 40, "l": 45, "b": 30},
+        )
+        st.plotly_chart(fig_nat, use_container_width=True)
+
+    if not nat_latest.empty:
+        st.markdown("""
+Las provincias con mayor natalidad son **Melilla**, **Almería** y **Ceuta**, todas con
+poblaciones jóvenes y mayor proporción de inmigración. En el extremo opuesto,
+**Ourense**, **Zamora** y **León** registran tasas propias de sociedades en declive.
+""")
+        top5 = nat_latest.nlargest(5, "valor")
+        bot5 = nat_latest.nsmallest(5, "valor")
+        combined = pd.concat([top5, bot5]).sort_values("valor")
+        combined["color"] = combined["valor"].apply(lambda v: "Top 5" if v >= top5["valor"].min() else "Bottom 5")
+        fig_nat_bar = px.bar(
+            combined, x="valor", y="provincia", orientation="h",
+            color="color", color_discrete_map={"Top 5": "#27ae60", "Bottom 5": "#e74c3c"},
+            labels={"valor": "‰", "provincia": "", "color": ""},
+            height=350,
+        )
+        fig_nat_bar.update_layout(
+            title="Top 5 y bottom 5 provincias por natalidad",
+            margin={"r": 10, "t": 40, "l": 10, "b": 10},
+            legend={"orientation": "h", "y": -0.1},
+        )
+        st.plotly_chart(fig_nat_bar, use_container_width=True)
+
+    st.divider()
+
+    # --- Mortalidad ---
+    st.subheader("Mortalidad: estable, con el pico de la pandemia")
+
+    mor_series = _load_csv_series("mortalidad")
+
+    st.markdown("""
+La tasa de mortalidad se mantiene en torno al 10‰, con un pico notable en 2019-2020
+por la pandemia de COVID-19 (que llegó a 11,93‰ de media). El mapa de mortalidad
+es casi el inverso del de natalidad: las provincias más envejecidas del interior registran
+las tasas más altas.
+""")
+
+    if not mor_series.empty and not nat_series.empty:
+        nat_y = nat_series.groupby("year")["valor"].mean().reset_index().rename(columns={"valor": "natalidad"})
+        mor_y = mor_series.groupby("year")["valor"].mean().reset_index().rename(columns={"valor": "mortalidad"})
+        merged = nat_y.merge(mor_y, on="year")
+        merged["crecimiento_natural"] = merged["natalidad"] - merged["mortalidad"]
+
+        fig_gap = go.Figure()
+        fig_gap.add_trace(go.Scatter(
+            x=merged["year"], y=merged["natalidad"], name="Natalidad",
+            fill=None, mode="lines", line={"color": "#27ae60", "width": 2},
+        ))
+        fig_gap.add_trace(go.Scatter(
+            x=merged["year"], y=merged["mortalidad"], name="Mortalidad",
+            fill="tonexty", mode="lines", line={"color": "#e74c3c", "width": 2},
+            fillcolor="rgba(231, 76, 60, 0.15)",
+        ))
+        fig_gap.update_layout(
+            title="Brecha natalidad–mortalidad (media nacional)",
+            height=350, xaxis={"title": "", "dtick": 1}, yaxis={"title": "‰"},
+            legend={"orientation": "h", "y": -0.1},
+            margin={"r": 10, "t": 40, "l": 45, "b": 30},
+        )
+        st.plotly_chart(fig_gap, use_container_width=True)
+
+        st.markdown(f"""
+La brecha entre mortalidad y natalidad se ha ido ampliando. En 2023, la mortalidad media
+superó a la natalidad en **{abs(merged.iloc[-1]['crecimiento_natural']):.1f} puntos por mil**.
+Sin la inmigración, España estaría perdiendo población de forma acelerada.
+""")
+
+    st.divider()
+
+    # --- Envejecimiento ---
+    st.subheader("Envejecimiento: la España vaciada no es solo rural")
+
+    pct65_series = _load_csv_series("pct_65")
+    pct65_latest = _load_csv("pct_65")
+
+    if not pct65_series.empty:
+        pct65_yearly = pct65_series.groupby("year")["valor"].mean().reset_index()
+        fig_65r = go.Figure(go.Bar(
+            x=pct65_yearly["year"], y=pct65_yearly["valor"],
+            marker_color=["#e74c3c" if v >= 22 else "#f39c12" if v >= 20 else "#3498db" for v in pct65_yearly["valor"]],
+            text=[f"{v:.1f}%" for v in pct65_yearly["valor"]],
+            textposition="outside", textfont={"size": 9},
+            hovertemplate="%{x}: %{y:.1f}%<extra></extra>",
+        ))
+        fig_65r.update_layout(
+            title="Evolución del % de población ≥65 años",
+            height=350, xaxis={"title": "", "dtick": 1}, yaxis={"title": "%", "range": [18, 24]},
+            margin={"r": 10, "t": 40, "l": 45, "b": 30},
+        )
+        st.plotly_chart(fig_65r, use_container_width=True)
+
+    st.markdown("""
+En una década, España ha pasado de tener una de cada cinco personas mayor de 65
+a casi **una de cada cuatro**. Pero la media nacional oculta contrastes brutales.
+""")
+
+    if not pct65_latest.empty:
+        fig_map_65 = px.choropleth_map(
+            pct65_latest, geojson=geojson,
+            locations="cod_prov", featureidkey="properties.cod_prov",
+            color="valor", hover_name="provincia",
+            hover_data={"valor": ":.1f", "cod_prov": False},
+            color_continuous_scale="OrRd",
+            labels={"valor": "% ≥65"},
+            map_style="carto-positron",
+            center={"lat": 40.0, "lon": -3.7}, zoom=4.5, opacity=0.8,
+        )
+        fig_map_65.update_layout(
+            height=500, margin={"r": 0, "t": 0, "l": 0, "b": 0},
+            coloraxis_colorbar={"title": "%"},
+        )
+        st.plotly_chart(fig_map_65, use_container_width=True)
+
+        col_old, col_young = st.columns(2)
+        top3 = pct65_latest.nlargest(3, "valor")
+        bot3 = pct65_latest.nsmallest(3, "valor")
+        with col_old:
+            st.markdown("**Más envejecidas**")
+            for _, row in top3.iterrows():
+                st.metric(row["provincia"], f"{row['valor']:.1f}%")
+        with col_young:
+            st.markdown("**Más jóvenes**")
+            for _, row in bot3.iterrows():
+                st.metric(row["provincia"], f"{row['valor']:.1f}%")
+
+    st.divider()
+
+    # --- Crecimiento ---
+    st.subheader("Crecimiento: inmigración como motor")
+
+    crec_latest = _load_csv("crecimiento")
+
+    st.markdown("""
+El crecimiento poblacional medio por provincia es positivo, pero el **crecimiento natural**
+(nacimientos menos defunciones) es negativo en la mayoría de provincias.
+Lo que sostiene el crecimiento es la **inmigración**.
+""")
+
+    if not crec_latest.empty:
+        crec_sorted = crec_latest.sort_values("valor")
+        crec_sorted["color"] = crec_sorted["valor"].apply(lambda v: "Crece" if v > 0 else "Decrece")
+        fig_crec = px.bar(
+            crec_sorted, x="valor", y="provincia", orientation="h",
+            color="color", color_discrete_map={"Crece": "#3498db", "Decrece": "#e74c3c"},
+            labels={"valor": "‰", "provincia": "", "color": ""},
+            height=max(400, len(crec_sorted) * 16),
+        )
+        fig_crec.update_layout(
+            title="Crecimiento poblacional por provincia (‰)",
+            margin={"r": 10, "t": 40, "l": 10, "b": 10},
+            showlegend=True, legend={"orientation": "h", "y": -0.05},
+            yaxis={"dtick": 1},
+        )
+        fig_crec.add_vline(x=0, line_dash="dot", line_color="gray")
+        st.plotly_chart(fig_crec, use_container_width=True)
+
+    st.divider()
+
+    # --- Dependencia ---
+    st.subheader("Dependencia: presión sobre la población activa")
+
+    dep_latest = _load_csv("dependencia")
+
+    st.markdown("""
+La tasa de dependencia mide cuántas personas en edad no laboral (<16 y ≥65)
+dependen de cada 100 en edad de trabajar. Una tasa alta implica mayor presión
+fiscal y sobre los servicios públicos.
+""")
+
+    if not dep_latest.empty:
+        dep_sorted = dep_latest.sort_values("valor", ascending=True)
+        fig_dep = px.bar(
+            dep_sorted, x="valor", y="provincia", orientation="h",
+            color="valor", color_continuous_scale="BuPu",
+            labels={"valor": "%", "provincia": ""},
+            height=max(400, len(dep_sorted) * 16),
+        )
+        fig_dep.update_layout(
+            title="Tasa de dependencia por provincia (%)",
+            margin={"r": 10, "t": 40, "l": 10, "b": 10},
+            coloraxis_showscale=False, yaxis={"dtick": 1},
+        )
+        st.plotly_chart(fig_dep, use_container_width=True)
+
+    st.divider()
+
+    # --- Conclusión ---
+    st.subheader("Conclusión")
+    st.markdown("""
+Los datos del INE dibujan un país con **dos velocidades demográficas**. Las provincias
+del interior y noroeste se vacían y envejecen a un ritmo acelerado, mientras que el litoral
+mediterráneo y las grandes áreas metropolitanas crecen gracias a la inmigración.
+
+El reto demográfico de España no es un problema futuro: **ya está aquí**. La natalidad no va
+a remontar a corto plazo, el envejecimiento se va a acelerar con la jubilación de los
+*baby boomers* (nacidos entre 1958 y 1975), y la inmigración — el único factor que
+compensa — depende de políticas y contextos internacionales cambiantes.
+
+---
+*Datos: Instituto Nacional de Estadística (INE). Procesados con Python.*
+""")

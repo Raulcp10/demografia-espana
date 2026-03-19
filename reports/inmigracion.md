@@ -1,6 +1,6 @@
-# Inmigración procedente del extranjero
+# inmigracion
 
-> Flujo de inmigración desde el extranjero por provincia (anual)
+> 
 > Último dato: diciembre 2023
 
 ## Mapa por provincia

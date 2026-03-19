@@ -5,7 +5,7 @@
 
 ## Mapa por provincia
 
-![Mapa](img/alquiler_mapa.png)
+![Mapa](<img/alquiler_mapa.png>)
 
 ## Estadísticas resumen
 

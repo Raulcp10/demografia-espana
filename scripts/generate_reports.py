@@ -31,8 +31,23 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.charts import COLOR_SCALES, UNITS
 from src.maps.provinces import get_province_name, load_geojson
+from src.sources.ine.demografia import IDB_TABLES, fetch_idb, fetch_idb_latest
 from src.sources.ine.inmigracion import fetch_immigration
 from src.sources.ine.vivienda import TABLES, get_latest_data, get_timeseries
+
+IDB_COLOR_SCALES = {
+    "natalidad": "Greens",
+    "mortalidad": "Reds",
+    "crecimiento": "RdYlGn",
+    "saldo_migratorio": "PiYG",
+    "pct_65": "OrRd",
+    "envejecimiento": "YlOrBr",
+    "dependencia": "BuPu",
+}
+
+ALL_TABLES: dict[str, dict] = {}
+ALL_TABLES.update({k: v for k, v in TABLES.items()})
+ALL_TABLES.update({k: v for k, v in IDB_TABLES.items()})
 
 DATA_DIR = Path("data/csv")
 IMG_DIR = Path("reports/img")
@@ -62,7 +77,7 @@ def save_choropleth(df: pd.DataFrame, key: str, geojson: dict) -> str:
         margin={"r": 0, "t": 40, "l": 0, "b": 0},
         height=500,
         width=900,
-        title=f"{TABLES.get(key, {}).get('name', key)} por provincia",
+        title=f"{ALL_TABLES.get(key, {}).get('name', key)} por provincia",
         coloraxis_colorbar={"title": UNITS.get(key, "Valor"), "thickness": 15},
     )
     path = IMG_DIR / f"{key}_mapa.png"
@@ -86,7 +101,7 @@ def save_ranking(df: pd.DataFrame, key: str) -> str:
     )
     fig.update_layout(
         margin={"r": 10, "t": 40, "l": 10, "b": 10},
-        title=f"Ranking: {TABLES.get(key, {}).get('name', key)}",
+        title=f"Ranking: {ALL_TABLES.get(key, {}).get('name', key)}",
         showlegend=False,
         coloraxis_showscale=False,
         yaxis={"dtick": 1},
@@ -116,7 +131,7 @@ def save_timeseries(ts: pd.DataFrame, key: str, top_n: int = 10) -> str:
     )
     fig.update_layout(
         margin={"r": 10, "t": 40, "l": 10, "b": 10},
-        title=f"Evolución: {TABLES.get(key, {}).get('name', key)} (top {top_n})",
+        title=f"Evolución: {ALL_TABLES.get(key, {}).get('name', key)} (top {top_n})",
         legend={"orientation": "h", "y": -0.2},
     )
     path = IMG_DIR / f"{key}_serie.png"
@@ -129,7 +144,7 @@ def save_timeseries(ts: pd.DataFrame, key: str, top_n: int = 10) -> str:
 
 def generate_report(key: str, latest: pd.DataFrame, ts: pd.DataFrame, geojson: dict) -> str:
     """Generate a Markdown report for a dataset."""
-    table_info = TABLES.get(key, {"name": key, "description": ""})
+    table_info = ALL_TABLES.get(key, {"name": key, "description": ""})
     unit = UNITS.get(key, "Valor")
 
     # Generate charts
@@ -245,6 +260,33 @@ def main():
         report_path.write_text(md)
         print(f"  Reporte: {report_path}")
 
+    # --- Demografía datasets ---
+    for key in IDB_TABLES:
+        info = IDB_TABLES[key]
+        print(f"\n--- {info['name']} ---")
+        print("  Descargando datos...")
+        latest = fetch_idb_latest(key)
+        ts = fetch_idb(key, nult=10)
+
+        if latest.empty:
+            print(f"  Sin datos para {key}, saltando.")
+            continue
+
+        # Save CSVs
+        latest.to_csv(DATA_DIR / f"{key}_ultimo.csv", index=False)
+        if not ts.empty:
+            ts.to_csv(DATA_DIR / f"{key}_serie.csv", index=False)
+
+        # Temporarily register color scale and unit for chart generation
+        COLOR_SCALES[key] = IDB_COLOR_SCALES.get(key, "YlOrRd")
+        UNITS[key] = info["unit"] or "Valor"
+
+        # Generate report
+        md = generate_report(key, latest, ts, geojson)
+        report_path = REPORTS_DIR / f"{key}.md"
+        report_path.write_text(md)
+        print(f"  Reporte: {report_path}")
+
     # --- Immigration ---
     print(f"\n--- Inmigración procedente del extranjero ---")
     print("  Descargando datos...")
@@ -271,7 +313,7 @@ def main():
 
     # --- Index report ---
     print("\n--- Generando índice ---")
-    index_md = """# Reportes de datos INE — Vivienda e Inmigración
+    index_md = """# Reportes de datos INE — España en datos
 
 Datos descargados del [Instituto Nacional de Estadística](https://www.ine.es/) (INE).
 
@@ -285,6 +327,22 @@ Datos descargados del [Instituto Nacional de Estadística](https://www.ine.es/) 
         index_md += f"| {info['name']} | [{key}.md](<{key}.md>) | [`{key}_ultimo.csv`](<{csv_path}>) |\n"
 
     index_md += """
+## Demografía
+
+| Indicador | Reporte | Datos |
+|-----------|---------|-------|
+"""
+    for key, info in IDB_TABLES.items():
+        csv_path = f"../data/csv/{key}_ultimo.csv"
+        index_md += f"| {info['name']} | [{key}.md](<{key}.md>) | [`{key}_ultimo.csv`](<{csv_path}>) |\n"
+
+    index_md += """
+## Inmigración
+
+| Indicador | Reporte | Datos |
+|-----------|---------|-------|
+| Inmigración desde el extranjero | [inmigracion.md](<inmigracion.md>) | [`inmigracion_ultimo.csv`](<../data/csv/inmigracion_ultimo.csv>) |
+
 ## Cómo se generaron
 
 ```bash

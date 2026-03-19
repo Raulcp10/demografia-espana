@@ -75,7 +75,10 @@ def _load_csv(key: str) -> pd.DataFrame:
     path = CSV_DIR / f"{key}_ultimo.csv"
     if not path.exists():
         return pd.DataFrame()
-    return pd.read_csv(path)
+    df = pd.read_csv(path)
+    if "cod_prov" in df.columns:
+        df["cod_prov"] = df["cod_prov"].astype(str).str.zfill(2)
+    return df
 
 
 @st.cache_data(show_spinner=False)
@@ -84,6 +87,8 @@ def _load_csv_series(key: str) -> pd.DataFrame:
     if not path.exists():
         return pd.DataFrame()
     df = pd.read_csv(path)
+    if "cod_prov" in df.columns:
+        df["cod_prov"] = df["cod_prov"].astype(str).str.zfill(2)
     if "periodo" in df.columns:
         df["periodo"] = pd.to_datetime(df["periodo"])
         df["year"] = df["periodo"].dt.year

@@ -1,5 +1,7 @@
 """Dashboard de demografía de España — Fuente: INE."""
 
+from pathlib import Path
+
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
@@ -68,7 +70,7 @@ def _demo_prov(key):
 st.title("👥 Demografía de España")
 st.caption(f"Fuente: INE · Año {YEAR}")
 
-tab_nacional, tab_mapa = st.tabs(["Nacional", "Mapa por provincias"])
+tab_nacional, tab_mapa, tab_informe = st.tabs(["Nacional", "Mapa por provincias", "Informe"])
 
 geojson = _load_geojson()
 
@@ -229,3 +231,14 @@ with tab_mapa:
         st.plotly_chart(fig_rank, use_container_width=True)
     else:
         st.warning("No se pudieron cargar datos para este indicador.")
+
+
+# ============================================================
+# TAB: Informe demográfico
+# ============================================================
+with tab_informe:
+    informe_path = Path("reports/informe_demografico.md")
+    if informe_path.exists():
+        st.markdown(informe_path.read_text())
+    else:
+        st.info("No se encontró el informe. Comprueba que existe `reports/informe_demografico.md`.")

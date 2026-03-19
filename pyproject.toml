@@ -12,5 +12,3 @@ dependencies = [
     "statsmodels>=0.14.6",
 ]
 
-[project.scripts]
-mapas-ine = "src.app:main"

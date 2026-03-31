@@ -203,11 +203,11 @@ with tab_nacional:
         fig_rates.add_hline(y=0, line_dash="solid", line_color="#e74c3c", line_width=1.5,
                             annotation_text="Crecimiento cero", annotation_position="bottom left",
                             annotation_font_color="#e74c3c", annotation_font_size=10)
-        y_min = min(df_merged["crecimiento"].min(), 0) - 1.5
+        y_min = df_merged["crecimiento"].min() - 2
         fig_rates.update_layout(
             title={"text": "Natalidad, mortalidad y crecimiento natural", "font": {"size": 14}},
-            barmode="group", height=350, xaxis={"title": "", "dtick": 2},
-            yaxis={"title": "‰", "range": [y_min, 14]},
+            barmode="group", height=400, xaxis={"title": "", "dtick": 2},
+            yaxis={"title": "‰", "range": [y_min, 13], "zeroline": True, "zerolinewidth": 2, "zerolinecolor": "#e74c3c"},
             legend={"orientation": "h", "y": -0.15, "x": 0.5, "xanchor": "center"},
             margin={"r": 10, "t": 35, "l": 45, "b": 40},
         )

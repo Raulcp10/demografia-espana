@@ -236,6 +236,15 @@ with tab_nacional:
     # --- España en contexto europeo ---
     st.subheader("España en contexto europeo: edad media vs fecundidad")
 
+    st.markdown("""
+Un **gráfico de dispersión** (scatter plot) muestra la relación entre dos variables.
+Cada punto es un país. El eje horizontal mide la **fecundidad** (hijos por mujer)
+y el vertical la **edad media** de la población. Traducido: los países situados
+**arriba a la izquierda** son los más envejecidos y con menos nacimientos — la peor
+combinación demográfica. Los de **abajo a la derecha** tienen poblaciones más jóvenes
+y fértiles.
+""")
+
     europa_path = Path("data/europa/csv/edad_fecundidad_ue.csv")
     if europa_path.exists():
         eu_df = pd.read_csv(europa_path)
@@ -290,6 +299,76 @@ España (**ES**, en rojo) se sitúa en la **esquina más comprometida**: alta ed
 (**{es_row['fecundidad']:.2f} hijos/mujer**, la segunda más baja de la UE tras Malta).
 """)
 
+        # --- Ranking de edad media ---
+        st.subheader("Ranking de edad media en la UE")
+
+        rank_df = eu_paises.sort_values("edad_media", ascending=True).copy()
+        rank_df["color"] = rank_df["iso"].apply(lambda x: "#e74c3c" if x == "ES" else "#d5d5d5")
+
+        fig_rank_eu = go.Figure(go.Bar(
+            x=rank_df["edad_media"], y=rank_df["pais"],
+            orientation="h", marker_color=rank_df["color"],
+            text=[f"{v:.1f}" for v in rank_df["edad_media"]],
+            textposition="outside",
+            hovertemplate="%{y}: %{x:.1f} años<extra></extra>",
+        ))
+        fig_rank_eu.add_vline(
+            x=eu_media["edad_media"], line_dash="dot", line_color="#2c3e50", line_width=1.5,
+            annotation_text=f"Media UE: {eu_media['edad_media']:.1f}",
+            annotation_position="top", annotation_font_size=11,
+        )
+        fig_rank_eu.update_layout(
+            height=max(450, len(rank_df) * 22),
+            margin={"r": 40, "t": 10, "l": 10, "b": 10},
+            xaxis={"title": "Edad media (años)", "range": [35, 52]},
+        )
+        st.plotly_chart(fig_rank_eu, use_container_width=True)
+
+        # --- Lollipop de fecundidad ---
+        st.subheader("Tasa de fecundidad en la UE")
+
+        lollipop_df = eu_paises.sort_values("fecundidad", ascending=True).copy()
+
+        fig_lolli = go.Figure()
+
+        for _, row in lollipop_df.iterrows():
+            color = "#e74c3c" if row["iso"] == "ES" else "#cccccc"
+            fig_lolli.add_trace(go.Scatter(
+                x=[0, row["fecundidad"]], y=[row["pais"], row["pais"]],
+                mode="lines", line={"color": color, "width": 2},
+                showlegend=False, hoverinfo="skip",
+            ))
+
+        fig_lolli.add_trace(go.Scatter(
+            x=lollipop_df["fecundidad"], y=lollipop_df["pais"],
+            mode="markers+text",
+            marker={
+                "size": [14 if iso == "ES" else 8 for iso in lollipop_df["iso"]],
+                "color": ["#e74c3c" if iso == "ES" else "#3498db" for iso in lollipop_df["iso"]],
+            },
+            text=[f"{v:.2f}" for v in lollipop_df["fecundidad"]],
+            textposition="middle right", textfont={"size": 9},
+            showlegend=False,
+            hovertemplate="%{y}: %{x:.2f} hijos/mujer<extra></extra>",
+        ))
+
+        fig_lolli.add_vline(
+            x=eu_media["fecundidad"], line_dash="dot", line_color="#2c3e50", line_width=1.5,
+            annotation_text=f"Media UE: {eu_media['fecundidad']:.2f}",
+            annotation_position="top", annotation_font_size=11,
+        )
+        fig_lolli.add_vline(
+            x=2.1, line_dash="dash", line_color="#e74c3c", line_width=1,
+            annotation_text="Reemplazo: 2,1",
+            annotation_position="top", annotation_font_size=10, annotation_font_color="#e74c3c",
+        )
+
+        fig_lolli.update_layout(
+            height=max(450, len(lollipop_df) * 22),
+            margin={"r": 50, "t": 10, "l": 10, "b": 10},
+            xaxis={"title": "Hijos por mujer", "range": [0, 2.3]},
+        )
+        st.plotly_chart(fig_lolli, use_container_width=True)
 
 
 # ============================================================

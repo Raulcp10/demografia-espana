@@ -125,11 +125,26 @@ with tab_nacional:
 
     m1, m2, m3, m4, m5, m6 = st.columns(6)
     m1.metric("Población total", f"{total / 1e6:.2f} M")
-    m2.metric("% menores de 15", f"{pop_young / total * 100:.1f}%")
-    m3.metric("% mayores de 65", f"{demographics.get('pct_65', 0):.1f}%")
-    m4.metric("Edad media", f"{demographics.get('edad_media', 0):.1f} años")
-    m5.metric("Tasa de dependencia", f"{demographics.get('dependencia', 0):.1f}%")
-    m6.metric("Tasa de fecundidad", f"{demographics.get('fecundidad', 0):.2f}")
+    m2.metric(
+        "Porcentaje menores de 15", f"{pop_young / total * 100:.1f}%",
+        help="Proporción de la población menor de 15 años. Indica la capacidad de renovación generacional. Por debajo del 15% se considera una población con bajo potencial de reemplazo.",
+    )
+    m3.metric(
+        "Porcentaje mayores de 65", f"{demographics.get('pct_65', 0):.1f}%",
+        help="Proporción de la población con 65 años o más. Es el indicador clave de envejecimiento. Por encima del 20% se habla de sociedad envejecida, lo que presiona el sistema de pensiones y la sanidad.",
+    )
+    m4.metric(
+        "Edad media", f"{demographics.get('edad_media', 0):.1f} años",
+        help="Edad promedio de toda la población. Refleja el equilibrio generacional. España tiene una de las edades medias más altas de Europa, señal de baja natalidad y alta esperanza de vida.",
+    )
+    m5.metric(
+        "Tasa de dependencia", f"{demographics.get('dependencia', 0):.1f}%",
+        help="Personas en edad no laboral (menores de 16 y mayores de 65) por cada 100 en edad de trabajar (16-64). Una tasa alta implica mayor presión fiscal y sobre los servicios públicos para sostener a la población dependiente.",
+    )
+    m6.metric(
+        "Tasa de fecundidad", f"{demographics.get('fecundidad', 0):.2f}",
+        help="Número medio de hijos por mujer. Se necesita un 2,1 para garantizar el reemplazo generacional. España lleva décadas por debajo, lo que conduce al envejecimiento progresivo de la población.",
+    )
 
     col_pyramid, col_65 = st.columns(2, gap="large")
 

@@ -253,37 +253,41 @@ with tab_mapa:
         df_prov["nombre"] = df_prov["cod_prov"].map(cod_to_name)
 
         info = IDB_TABLES[indicador]
-        fig_demo_map = px.choropleth_map(
-            df_prov, geojson=geojson,
-            locations="cod_prov", featureidkey="properties.cod_prov",
-            color="valor", hover_name="nombre",
-            hover_data={"valor": ":.2f", "cod_prov": False},
-            color_continuous_scale="YlOrRd",
-            labels={"valor": info["unit"] or "valor"},
-            map_style="carto-positron",
-            center={"lat": 40.0, "lon": -3.7}, zoom=4.5, opacity=0.8,
-        )
-        fig_demo_map.update_layout(
-            height=600, margin={"r": 0, "t": 0, "l": 0, "b": 0},
-            coloraxis_colorbar={"title": info["unit"]},
-        )
-        st.plotly_chart(fig_demo_map, use_container_width=True)
 
-        # Ranking
-        sorted_prov = df_prov.sort_values("valor", ascending=True)
-        fig_rank = px.bar(
-            sorted_prov, x="valor", y="nombre", orientation="h",
-            labels={"valor": info["unit"] or "Valor", "nombre": ""},
-            color="valor", color_continuous_scale="YlOrRd",
-            height=max(400, len(sorted_prov) * 18),
-        )
-        fig_rank.update_traces(hovertemplate="%{y}: %{x:.2f}<extra></extra>")
-        fig_rank.update_layout(
-            margin={"r": 10, "t": 10, "l": 10, "b": 10},
-            showlegend=False, coloraxis_showscale=False, yaxis={"dtick": 1},
-            xaxis={"tickformat": ".1f"},
-        )
-        st.plotly_chart(fig_rank, use_container_width=True)
+        col_map, col_rank = st.columns([3, 2])
+
+        with col_map:
+            fig_demo_map = px.choropleth_map(
+                df_prov, geojson=geojson,
+                locations="cod_prov", featureidkey="properties.cod_prov",
+                color="valor", hover_name="nombre",
+                hover_data={"valor": ":.2f", "cod_prov": False},
+                color_continuous_scale="YlOrRd",
+                labels={"valor": info["unit"] or "valor"},
+                map_style="carto-positron",
+                center={"lat": 40.0, "lon": -3.7}, zoom=4.5, opacity=0.8,
+            )
+            fig_demo_map.update_layout(
+                height=700, margin={"r": 0, "t": 0, "l": 0, "b": 0},
+                coloraxis_colorbar={"title": info["unit"]},
+            )
+            st.plotly_chart(fig_demo_map, use_container_width=True)
+
+        with col_rank:
+            sorted_prov = df_prov.sort_values("valor", ascending=True)
+            fig_rank = px.bar(
+                sorted_prov, x="valor", y="nombre", orientation="h",
+                labels={"valor": info["unit"] or "Valor", "nombre": ""},
+                color="valor", color_continuous_scale="YlOrRd",
+                height=700,
+            )
+            fig_rank.update_traces(hovertemplate="%{y}: %{x:.2f}<extra></extra>")
+            fig_rank.update_layout(
+                margin={"r": 10, "t": 10, "l": 10, "b": 10},
+                showlegend=False, coloraxis_showscale=False, yaxis={"dtick": 1},
+                xaxis={"tickformat": ".1f"},
+            )
+            st.plotly_chart(fig_rank, use_container_width=True)
     else:
         st.warning("No se pudieron cargar datos para este indicador.")
 

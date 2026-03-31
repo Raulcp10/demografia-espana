@@ -237,12 +237,11 @@ with tab_nacional:
     st.subheader("España en contexto europeo: edad media vs fecundidad")
 
     st.markdown("""
-Un **gráfico de dispersión** (scatter plot) muestra la relación entre dos variables.
-Cada punto es un país. El eje horizontal mide la **fecundidad** (hijos por mujer)
-y el vertical la **edad media** de la población. Traducido: los países situados
-**arriba a la izquierda** son los más envejecidos y con menos nacimientos — la peor
-combinación demográfica. Los de **abajo a la derecha** tienen poblaciones más jóvenes
-y fértiles.
+El gráfico de dispersión muestra la relación entre las variables de edad media y
+fecundidad para los países de la Unión Europea. Esto significa que los países situados
+**arriba a la izquierda** muestran la peor combinación demográfica, es decir, países
+más envejecidos y con menor tasa de fecundidad. Los países de **abajo a la derecha**
+tienen poblaciones más jóvenes y fértiles.
 """)
 
     europa_path = Path("data/europa/csv/edad_fecundidad_ue.csv")

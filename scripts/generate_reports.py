@@ -31,7 +31,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from src.maps.provinces import load_geojson
 from src.sources.ine.demografia import IDB_TABLES, fetch_idb, fetch_idb_latest
 
-DATA_DIR = Path("data/csv")
+DATA_DIR = Path("data/espana/csv")
 IMG_DIR = Path("reports/img")
 REPORTS_DIR = Path("reports")
 

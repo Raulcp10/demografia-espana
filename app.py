@@ -20,7 +20,7 @@ from src.sources.ine.demografia import (
     load_rates,
 )
 
-CSV_DIR = Path("data/csv")
+CSV_DIR = Path("data/espana/csv")
 
 st.set_page_config(
     page_title="Demografía de España · INE",
@@ -232,6 +232,63 @@ with tab_nacional:
             margin={"r": 10, "t": 35, "l": 45, "b": 40},
         )
         st.plotly_chart(fig_rates, use_container_width=True)
+
+    # --- España en contexto europeo ---
+    st.subheader("España en contexto europeo: edad media vs fecundidad")
+
+    europa_path = Path("data/europa/csv/edad_fecundidad_ue.csv")
+    if europa_path.exists():
+        eu_df = pd.read_csv(europa_path)
+        eu_paises = eu_df[eu_df["iso"] != "EU"].copy()
+        eu_media = eu_df[eu_df["iso"] == "EU"].iloc[0]
+
+        eu_paises["es_espana"] = eu_paises["iso"] == "ES"
+
+        fig_scatter = px.scatter(
+            eu_paises, x="fecundidad", y="edad_media",
+            hover_name="pais",
+            color="es_espana",
+            color_discrete_map={True: "#e74c3c", False: "#3498db"},
+            size=[14 if es else 8 for es in eu_paises["es_espana"]],
+            labels={"fecundidad": "Tasa de fecundidad (hijos/mujer)", "edad_media": "Edad media (años)"},
+        )
+
+        # Líneas de referencia: media UE
+        fig_scatter.add_hline(y=eu_media["edad_media"], line_dash="dot", line_color="#999", line_width=1,
+                              annotation_text=f"Media UE: {eu_media['edad_media']:.1f} años",
+                              annotation_position="top left", annotation_font_size=10, annotation_font_color="#999")
+        fig_scatter.add_vline(x=eu_media["fecundidad"], line_dash="dot", line_color="#999", line_width=1,
+                              annotation_text=f"Media UE: {eu_media['fecundidad']:.2f}",
+                              annotation_position="top right", annotation_font_size=10, annotation_font_color="#999")
+
+        # Línea de reemplazo generacional
+        fig_scatter.add_vline(x=2.1, line_dash="dash", line_color="#e74c3c", line_width=1,
+                              annotation_text="Reemplazo: 2,1", annotation_position="top right",
+                              annotation_font_size=10, annotation_font_color="#e74c3c")
+
+        # Etiqueta de España
+        es_row = eu_paises[eu_paises["iso"] == "ES"].iloc[0]
+        fig_scatter.add_annotation(
+            x=es_row["fecundidad"], y=es_row["edad_media"],
+            text="España", showarrow=True, arrowhead=2,
+            ax=40, ay=-30, font={"size": 13, "color": "#e74c3c"},
+        )
+
+        fig_scatter.update_traces(marker={"opacity": 0.8}, showlegend=False)
+        fig_scatter.update_layout(
+            height=450,
+            margin={"r": 10, "t": 10, "l": 10, "b": 10},
+            xaxis={"range": [0.95, 1.95]},
+        )
+        st.plotly_chart(fig_scatter, use_container_width=True)
+
+        st.markdown(f"""
+España se sitúa en la **esquina más comprometida** del gráfico: alta edad media
+(**{es_row['edad_media']:.1f} años**, solo por detrás de Italia) y baja fecundidad
+(**{es_row['fecundidad']:.2f} hijos/mujer**, la segunda más baja de la UE tras Malta).
+Ningún país de la UE alcanza la tasa de reemplazo generacional de 2,1, pero España
+está especialmente lejos.
+""")
 
 
 # ============================================================

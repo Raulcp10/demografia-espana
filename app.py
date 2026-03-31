@@ -242,18 +242,33 @@ with tab_nacional:
         eu_paises = eu_df[eu_df["iso"] != "EU"].copy()
         eu_media = eu_df[eu_df["iso"] == "EU"].iloc[0]
 
-        eu_paises["es_espana"] = eu_paises["iso"] == "ES"
+        es_row = eu_paises[eu_paises["iso"] == "ES"].iloc[0]
 
-        fig_scatter = px.scatter(
-            eu_paises, x="fecundidad", y="edad_media",
-            hover_name="pais",
-            color="es_espana",
-            color_discrete_map={True: "#e74c3c", False: "#3498db"},
-            size=[14 if es else 8 for es in eu_paises["es_espana"]],
-            labels={"fecundidad": "Tasa de fecundidad (hijos/mujer)", "edad_media": "Edad media (años)"},
-        )
+        fig_scatter = go.Figure()
 
-        # Líneas de referencia: media UE
+        # Puntos de todos los países (azul)
+        otros = eu_paises[eu_paises["iso"] != "ES"]
+        fig_scatter.add_trace(go.Scatter(
+            x=otros["fecundidad"], y=otros["edad_media"],
+            mode="markers+text",
+            marker={"size": 10, "color": "#3498db", "opacity": 0.7},
+            text=otros["iso"], textposition="top center", textfont={"size": 9, "color": "#3498db"},
+            hovertemplate="%{hovertext}<br>Fecundidad: %{x:.2f}<br>Edad media: %{y:.1f}<extra></extra>",
+            hovertext=otros["pais"],
+            showlegend=False,
+        ))
+
+        # España resaltada (rojo, más grande)
+        fig_scatter.add_trace(go.Scatter(
+            x=[es_row["fecundidad"]], y=[es_row["edad_media"]],
+            mode="markers+text",
+            marker={"size": 16, "color": "#e74c3c", "opacity": 1, "line": {"width": 2, "color": "white"}},
+            text=["ES"], textposition="bottom center", textfont={"size": 11, "color": "#e74c3c", "family": "Arial Black"},
+            hovertemplate="España<br>Fecundidad: %{x:.2f}<br>Edad media: %{y:.1f}<extra></extra>",
+            showlegend=False,
+        ))
+
+        # Líneas de referencia
         fig_scatter.add_hline(y=eu_media["edad_media"], line_dash="dot", line_color="#999", line_width=1,
                               annotation_text=f"Media UE: {eu_media['edad_media']:.1f} años",
                               annotation_position="top left", annotation_font_size=10, annotation_font_color="#999")
@@ -261,125 +276,20 @@ with tab_nacional:
                               annotation_text=f"Media UE: {eu_media['fecundidad']:.2f}",
                               annotation_position="top right", annotation_font_size=10, annotation_font_color="#999")
 
-        # Línea de reemplazo generacional
-        fig_scatter.add_vline(x=2.1, line_dash="dash", line_color="#e74c3c", line_width=1,
-                              annotation_text="Reemplazo: 2,1", annotation_position="top right",
-                              annotation_font_size=10, annotation_font_color="#e74c3c")
-
-        # Etiqueta de España
-        es_row = eu_paises[eu_paises["iso"] == "ES"].iloc[0]
-        fig_scatter.add_annotation(
-            x=es_row["fecundidad"], y=es_row["edad_media"],
-            text="España", showarrow=True, arrowhead=2,
-            ax=40, ay=-30, font={"size": 13, "color": "#e74c3c"},
-        )
-
-        fig_scatter.update_traces(marker={"opacity": 0.8}, showlegend=False)
         fig_scatter.update_layout(
-            height=450,
+            height=500,
             margin={"r": 10, "t": 10, "l": 10, "b": 10},
-            xaxis={"range": [0.95, 1.95]},
+            xaxis={"title": "Tasa de fecundidad (hijos/mujer)", "range": [0.95, 1.95]},
+            yaxis={"title": "Edad media (años)"},
         )
         st.plotly_chart(fig_scatter, use_container_width=True)
 
         st.markdown(f"""
-España se sitúa en la **esquina más comprometida** del gráfico: alta edad media
+España (**ES**, en rojo) se sitúa en la **esquina más comprometida**: alta edad media
 (**{es_row['edad_media']:.1f} años**, solo por detrás de Italia) y baja fecundidad
 (**{es_row['fecundidad']:.2f} hijos/mujer**, la segunda más baja de la UE tras Malta).
-Ningún país de la UE alcanza la tasa de reemplazo generacional de 2,1, pero España
-está especialmente lejos.
 """)
 
-        # --- Opción A: Ranking barras horizontales ---
-        st.subheader("Ranking de edad media en la UE")
-
-        rank_df = eu_paises.sort_values("edad_media", ascending=True).copy()
-        rank_df["color"] = rank_df["iso"].apply(lambda x: "#e74c3c" if x == "ES" else "#d5d5d5")
-
-        fig_rank_eu = go.Figure(go.Bar(
-            x=rank_df["edad_media"], y=rank_df["pais"],
-            orientation="h", marker_color=rank_df["color"],
-            text=[f"{v:.1f}" for v in rank_df["edad_media"]],
-            textposition="outside",
-            hovertemplate="%{y}: %{x:.1f} años<extra></extra>",
-        ))
-        fig_rank_eu.add_vline(
-            x=eu_media["edad_media"], line_dash="dot", line_color="#2c3e50", line_width=1.5,
-            annotation_text=f"Media UE: {eu_media['edad_media']:.1f}",
-            annotation_position="top", annotation_font_size=11,
-        )
-        posicion_es = int(rank_df[rank_df["iso"] == "ES"].index[0]) + 1
-        total_paises = len(rank_df)
-        fig_rank_eu.update_layout(
-            height=max(450, len(rank_df) * 22),
-            margin={"r": 40, "t": 10, "l": 10, "b": 10},
-            xaxis={"title": "Edad media (años)", "range": [35, 52]},
-        )
-        st.plotly_chart(fig_rank_eu, use_container_width=True)
-
-        st.markdown(f"""
-España es el **{total_paises - posicion_es + 1}º país más envejecido** de los 27 de la UE,
-con una edad media de **{es_row['edad_media']:.1f} años**, por encima de la media europea
-({eu_media['edad_media']:.1f}) y solo por detrás de Italia ({eu_paises[eu_paises['iso']=='IT'].iloc[0]['edad_media']:.1f})
-y Portugal ({eu_paises[eu_paises['iso']=='PT'].iloc[0]['edad_media']:.1f}).
-""")
-
-        # --- Lollipop: fecundidad ---
-        st.subheader("Tasa de fecundidad en la UE (lollipop chart)")
-
-        lollipop_df = eu_paises.sort_values("fecundidad", ascending=True).copy()
-
-        fig_lolli = go.Figure()
-
-        # Líneas (los "palitos" del lollipop)
-        for _, row in lollipop_df.iterrows():
-            color = "#e74c3c" if row["iso"] == "ES" else "#cccccc"
-            fig_lolli.add_trace(go.Scatter(
-                x=[0, row["fecundidad"]], y=[row["pais"], row["pais"]],
-                mode="lines", line={"color": color, "width": 2},
-                showlegend=False, hoverinfo="skip",
-            ))
-
-        # Puntos (las "bolas" del lollipop)
-        fig_lolli.add_trace(go.Scatter(
-            x=lollipop_df["fecundidad"], y=lollipop_df["pais"],
-            mode="markers+text",
-            marker={
-                "size": [14 if iso == "ES" else 8 for iso in lollipop_df["iso"]],
-                "color": ["#e74c3c" if iso == "ES" else "#3498db" for iso in lollipop_df["iso"]],
-            },
-            text=[f"{v:.2f}" for v in lollipop_df["fecundidad"]],
-            textposition="middle right", textfont={"size": 9},
-            showlegend=False,
-            hovertemplate="%{y}: %{x:.2f} hijos/mujer<extra></extra>",
-        ))
-
-        # Línea media UE
-        fig_lolli.add_vline(
-            x=eu_media["fecundidad"], line_dash="dot", line_color="#2c3e50", line_width=1.5,
-            annotation_text=f"Media UE: {eu_media['fecundidad']:.2f}",
-            annotation_position="top", annotation_font_size=11,
-        )
-        # Línea reemplazo
-        fig_lolli.add_vline(
-            x=2.1, line_dash="dash", line_color="#e74c3c", line_width=1,
-            annotation_text="Reemplazo: 2,1",
-            annotation_position="top", annotation_font_size=10, annotation_font_color="#e74c3c",
-        )
-
-        fig_lolli.update_layout(
-            height=max(450, len(lollipop_df) * 22),
-            margin={"r": 50, "t": 10, "l": 10, "b": 10},
-            xaxis={"title": "Hijos por mujer", "range": [0, 2.3]},
-        )
-        st.plotly_chart(fig_lolli, use_container_width=True)
-
-        st.markdown(f"""
-España tiene una tasa de fecundidad de **{es_row['fecundidad']:.2f} hijos por mujer**,
-la segunda más baja de la UE. Solo Malta ({eu_paises[eu_paises['iso']=='MT'].iloc[0]['fecundidad']:.2f})
-está por debajo. Ningún país europeo alcanza el umbral de reemplazo de 2,1, pero
-España está un **19% por debajo** de la media europea ({eu_media['fecundidad']:.2f}).
-""")
 
 
 # ============================================================

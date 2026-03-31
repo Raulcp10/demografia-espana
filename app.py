@@ -169,7 +169,7 @@ with tab_nacional:
         tick_vals = [-max_val, -max_val / 2, 0, max_val / 2, max_val]
         tick_text = [f"{abs(v) / 1e6:.1f}M" for v in tick_vals]
         fig_pyr.update_layout(
-            title={"text": "Pirámide de población", "font": {"size": 14}},
+            title={"text": "Estructura demográfica de España", "font": {"size": 14}},
             barmode="overlay", bargap=0.05, height=300,
             xaxis={"tickvals": tick_vals, "ticktext": tick_text, "title": ""},
             yaxis={"categoryorder": "array", "categoryarray": AGE_GROUPS, "title": "", "tickfont": {"size": 9}},
@@ -188,7 +188,7 @@ with tab_nacional:
                 hovertemplate="Año %{x}: %{y:.2f}%<extra></extra>",
             ))
             fig_65.update_layout(
-                title={"text": "Evolución % mayores de 65", "font": {"size": 14}},
+                title={"text": "Evolución del porcentaje de mayores de 65", "font": {"size": 14}},
                 height=280, xaxis={"title": "", "dtick": 2}, yaxis={"title": "%"},
                 margin={"r": 10, "t": 35, "l": 45, "b": 30},
             )

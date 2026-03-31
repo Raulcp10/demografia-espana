@@ -123,8 +123,12 @@ with tab_nacional:
     )]
     pop_young = young["hombres"].sum() + young["mujeres"].sum()
 
+    dep_val = demographics.get("dependencia", 0)
     m1, m2, m3, m4, m5, m6 = st.columns(6)
-    m1.metric("Población total", f"{total / 1e6:.2f} M")
+    m1.metric(
+        "Población total", f"{total / 1e6:.2f} M",
+        help="Personas residentes en España. El crecimiento poblacional depende casi exclusivamente de la inmigración, ya que el crecimiento natural (nacimientos - defunciones) es negativo desde 2015.",
+    )
     m2.metric(
         "Porcentaje menores de 15", f"{pop_young / total * 100:.1f}%",
         help="Proporción de la población menor de 15 años. Indica la capacidad de renovación generacional. Por debajo del 15% se considera una población con bajo potencial de reemplazo.",
@@ -138,8 +142,8 @@ with tab_nacional:
         help="Edad promedio de toda la población. Refleja el equilibrio generacional. España tiene una de las edades medias más altas de Europa, señal de baja natalidad y alta esperanza de vida.",
     )
     m5.metric(
-        "Tasa de dependencia", f"{demographics.get('dependencia', 0):.1f}%",
-        help="Personas en edad no laboral (menores de 16 y mayores de 65) por cada 100 en edad de trabajar (16-64). Una tasa alta implica mayor presión fiscal y sobre los servicios públicos para sostener a la población dependiente.",
+        "Tasa de dependencia", f"{dep_val:.1f}%",
+        help=f"Personas en edad no laboral (menores de 16 y mayores de 65) por cada 100 en edad de trabajar (16-64). Valores de referencia: <50% = situación cómoda · 50-55% = media de la UE · 55-60% = presión notable · >60% = presión crítica. España ({dep_val:.0f}%) está en torno a la media europea.",
     )
     m6.metric(
         "Tasa de fecundidad", f"{demographics.get('fecundidad', 0):.2f}",
@@ -165,11 +169,12 @@ with tab_nacional:
         tick_vals = [-max_val, -max_val / 2, 0, max_val / 2, max_val]
         tick_text = [f"{abs(v) / 1e6:.1f}M" for v in tick_vals]
         fig_pyr.update_layout(
-            barmode="overlay", bargap=0.05, height=280,
+            title={"text": "Pirámide de población", "font": {"size": 14}},
+            barmode="overlay", bargap=0.05, height=300,
             xaxis={"tickvals": tick_vals, "ticktext": tick_text, "title": ""},
             yaxis={"categoryorder": "array", "categoryarray": AGE_GROUPS, "title": "", "tickfont": {"size": 9}},
             legend={"orientation": "h", "y": 1.06, "x": 0.5, "xanchor": "center"},
-            margin={"r": 10, "t": 25, "l": 10, "b": 10},
+            margin={"r": 10, "t": 35, "l": 10, "b": 10},
         )
         st.plotly_chart(fig_pyr, use_container_width=True)
 
@@ -272,9 +277,11 @@ with tab_mapa:
             color="valor", color_continuous_scale="YlOrRd",
             height=max(400, len(sorted_prov) * 18),
         )
+        fig_rank.update_traces(hovertemplate="%{y}: %{x:.2f}<extra></extra>")
         fig_rank.update_layout(
             margin={"r": 10, "t": 10, "l": 10, "b": 10},
             showlegend=False, coloraxis_showscale=False, yaxis={"dtick": 1},
+            xaxis={"tickformat": ".1f"},
         )
         st.plotly_chart(fig_rank, use_container_width=True)
     else:
@@ -343,10 +350,12 @@ poblaciones jóvenes y mayor proporción de inmigración. En el extremo opuesto,
             labels={"valor": "‰", "provincia": "", "color": ""},
             height=350,
         )
+        fig_nat_bar.update_traces(hovertemplate="%{y}: %{x:.2f}‰<extra></extra>")
         fig_nat_bar.update_layout(
             title="Top 5 y bottom 5 provincias por natalidad",
             margin={"r": 10, "t": 40, "l": 10, "b": 10},
             legend={"orientation": "h", "y": -0.1},
+            xaxis={"tickformat": ".1f"},
         )
         st.plotly_chart(fig_nat_bar, use_container_width=True)
 
@@ -474,11 +483,12 @@ Lo que sostiene el crecimiento es la **inmigración**.
             labels={"valor": "‰", "provincia": "", "color": ""},
             height=max(400, len(crec_sorted) * 16),
         )
+        fig_crec.update_traces(hovertemplate="%{y}: %{x:.2f}‰<extra></extra>")
         fig_crec.update_layout(
             title="Crecimiento poblacional por provincia (‰)",
             margin={"r": 10, "t": 40, "l": 10, "b": 10},
             showlegend=True, legend={"orientation": "h", "y": -0.05},
-            yaxis={"dtick": 1},
+            yaxis={"dtick": 1}, xaxis={"tickformat": ".1f"},
         )
         fig_crec.add_vline(x=0, line_dash="dot", line_color="gray")
         st.plotly_chart(fig_crec, use_container_width=True)
@@ -504,10 +514,12 @@ fiscal y sobre los servicios públicos.
             labels={"valor": "%", "provincia": ""},
             height=max(400, len(dep_sorted) * 16),
         )
+        fig_dep.update_traces(hovertemplate="%{y}: %{x:.2f}%<extra></extra>")
         fig_dep.update_layout(
             title="Tasa de dependencia por provincia (%)",
             margin={"r": 10, "t": 40, "l": 10, "b": 10},
             coloraxis_showscale=False, yaxis={"dtick": 1},
+            xaxis={"tickformat": ".1f"},
         )
         st.plotly_chart(fig_dep, use_container_width=True)
 
